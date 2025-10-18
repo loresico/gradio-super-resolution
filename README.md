@@ -1,295 +1,239 @@
-# Python UV Template (Always Portable) 🚀
+# 🎨 Gradio Super Resolution App
 
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
-[![UV](https://img.shields.io/badge/uv-enabled-blue)](https://github.com/astral-sh/uv)
-[![Portable](https://img.shields.io/badge/portable-100%25-green)](https://github.com/indygreg/python-build-standalone)
+[![Gradio](https://img.shields.io/badge/gradio-4.0+-orange.svg)](https://gradio.app/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A professional Python project template that **always uses portable Python** - never relies on system installations.
+AI-powered image super-resolution with an intuitive Gradio web interface. Enhance your images up to 4x resolution!
 
-## ✨ Philosophy
+![Demo](demo.gif)
 
-- 🎯 **Always Portable** - Consistent Python environment everywhere
-- 📦 **Self-Contained** - No dependency on system Python
-- 🔄 **Reproducible** - Same exact Python version every time
-- 🚀 **Distributable** - Package includes everything needed
+## ✨ Features
+
+- 🖼️ **Easy Upload** - Drag & drop, paste, or webcam capture
+- 📈 **Multiple Scale Factors** - 2x, 3x, or 4x upscaling
+- 🌐 **Web Interface** - Beautiful, responsive Gradio UI
+- ⚡ **Fast Processing** - Quick results with bicubic interpolation
+- 📊 **Detailed Stats** - See before/after dimensions and improvements
+- 🎯 **Ready to Extend** - Easy to add AI models
 
 ## 🚀 Quick Start
 
 ```bash
-# 1. Clone or use this template
-git clone https://github.com/yourusername/your-project
-cd your-project
+# 1. Clone the repository
+git clone https://github.com/yourusername/gradio-super-resolution
+cd gradio-super-resolution
 
-# 2. Run setup (downloads Python 3.13.9 first time, ~2 minutes)
+# 2. Run setup (downloads portable Python, installs dependencies)
 ./setup.sh
 
-# 3. Activate and run
+# 3. Activate environment
 source .venv/bin/activate
+
+# 4. Run the app
 python src/main.py
 ```
 
-That's it! No system Python needed.
+Open your browser to: http://localhost:7860
 
-## 📁 Project Structure (After Setup)
+## 📦 Installation
 
-```
-your-project/
-├── .github/
-│   └── workflows/
-│       └── ci.yml            # CI/CD pipeline
-├── .python/                  # Portable Python 3.13.9 (~80MB, gitignored)
-├── .venv/                    # Virtual environment (gitignored)
-├── src/
-│   ├── __init__.py
-│   └── main.py
-├── tests/
-│   ├── __init__.py
-│   └── test_main.py
-├── .gitignore
-├── CONTRIBUTING.md           # Contribution guidelines
-├── pyproject.toml            # Project configuration
-├── README.md
-├── QUICK_REFERENCE.md
-├── setup.sh         # Setup script
-├── uv.lock
-└── verify-python-version.sh  # Version checker
-```
+### Using the Template
 
-## 🎯 Common Commands
+This project uses portable Python - no system Python required!
 
 ```bash
-# Setup (first time downloads Python, subsequent runs reuse it)
-./setup.sh
-
-# If something breaks, clean rebuild
-./setup.sh --force-clean
-
-# Add a dependency
-# 1. Edit pyproject.toml
-# 2. Then:
-uv lock
-uv sync
-
+./setup.sh                    # First time setup
+./setup.sh --force-clean      # Clean rebuild
 ```
 
-## 🔧 How It Works
-
-### First Time
-
-1. Downloads pre-built Python 3.13.9 from [python-build-standalone](https://github.com/indygreg/python-build-standalone)
-2. Installs to `.python/` directory
-3. Creates virtual environment in `.venv/`
-4. Installs dependencies with UV
-
-### Subsequent Runs
-
-1. Finds existing `.python/` installation
-2. Reuses it (no download needed!)
-3. Creates fresh `.venv/`
-4. Installs dependencies
-
-### With `--force-clean`
-
-1. Deletes `.python/`, `.venv/`, `uv.lock`
-2. Downloads Python 3.13.9 again
-3. Fresh installation
-
-## 💡 Why Portable Python?
-
-| System Python | Portable Python |
-|---------------|-----------------|
-| ❌ Different versions on different machines | ✅ Exact same version everywhere |
-| ❌ Might not be installed | ✅ Always available |
-| ❌ User might update it | ✅ Controlled version |
-| ❌ Dependency conflicts | ✅ Self-contained |
-| ❌ "Works on my machine" | ✅ Works everywhere |
-
-## 📊 Disk Space
-
-- `.python/` : ~80 MB (one-time)
-- `.venv/` : ~50 MB (varies by dependencies)
-- **Total**: ~150 MB uncompressed
-- **Package**: ~50 MB compressed
-
-Small price for complete portability!
-
-## 🛠️ Development Workflow
+### Manual Installation
 
 ```bash
-# Day 1: Setup
-./setup.sh
+# Create virtual environment
+python3.13 -m venv .venv
 source .venv/bin/activate
 
-# Daily development
+# Install dependencies
+pip install gradio pillow numpy
+```
+
+## 🎯 Usage
+
+### Basic Usage
+
+```bash
+# Start the app
 python src/main.py
+
+# Or with Poetry
+poetry run python src/main.py
+```
+
+### As a Module
+
+```python
+from src.main import upscale_image
+from PIL import Image
+
+# Load image
+img = Image.open("photo.jpg")
+
+# Upscale 2x
+enhanced, info = upscale_image(img, scale_factor=2)
+
+# Save result
+enhanced.save("photo_2x.jpg")
+```
+
+## 🔧 Configuration
+
+Edit `src/main.py` to customize:
+
+```python
+demo.launch(
+    server_name="0.0.0.0",  # Listen on all interfaces
+    server_port=7860,        # Change port
+    share=True,              # Create public link (Gradio)
+    show_error=True,         # Show error messages
+)
+```
+
+## 🚀 Adding AI Models
+
+Currently uses basic bicubic interpolation. To add AI models:
+
+### Option 1: Real-ESRGAN
+
+```bash
+# Add to pyproject.toml dependencies
+uv pip install realesrgan
+
+# Update src/main.py
+from realesrgan import RealESRGANer
+# ... implement model loading and inference
+```
+
+### Option 2: Use Hugging Face Models
+
+```bash
+uv pip install transformers torch
+
+# Use pre-trained models from HF Hub
+```
+
+### Option 3: Custom Model
+
+See `src/main.py` - replace the `upscale_image` function with your model inference.
+
+## 🧪 Testing
+
+```bash
+# Run tests
 pytest
 
-# Add dependencies
-# Edit pyproject.toml, then:
-uv lock && uv sync
+# With coverage
+pytest --cov=src --cov-report=html
 
-# If weird issues
-./setup.sh --force-clean
-```
-
-## 📮 Distribution Workflow
-
-```bash
-# 1. Ensure clean build
-./setup.sh --force-clean
-
-# 2. Test your app
-source .venv/bin/activate
-python src/main.py
-```
-
-## 🎨 Customization
-
-### Change Python Version
-
-Edit `setup.sh`:
-```bash
-PYTHON_VERSION="3.14.*"  # Or any version
-```
-
-Available versions: https://github.com/indygreg/python-build-standalone/releases
-
-## 🐛 Troubleshooting
-
-```bash
-# Virtual environment issues
-rm -rf .venv/ && ./setup.sh
-
-# Complete fresh start
-./setup.sh --force-clean
-
-# Check what you have
-.python/bin/python3 --version
-source .venv/bin/activate && python --version
-```
-
-## 📚 Documentation
-
-- [Setup Guide](README.md) - Detailed guide
-- [Quick Reference](QUICK_REFERENCE.md) - Command cheat sheet
-- [UV Documentation](https://github.com/astral-sh/uv)
-
-## ⚠️ Platform Compatibility
-
-Portable Python is **OS and architecture specific**:
-
-- ✅ macOS x86_64 → macOS x86_64
-- ✅ macOS arm64 (M1/M2/M3) → macOS arm64
-- ✅ Linux x86_64 → Linux x86_64
-- ✅ Linux aarch64 → Linux aarch64
-- ❌ macOS → Linux (use Docker)
-- ❌ x86_64 → arm64 (use Docker)
-- ❌ Windows (use WSL or Docker)
-
-## 🤝 Contributing
-
-### Commit Message Convention
-
-This project follows [Conventional Commits](https://www.conventionalcommits.org/) for clear and structured commit history.
-
-**Format:**
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
-```
-
-**Types:**
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting, no logic change)
-- `refactor`: Code refactoring (no feature change or bug fix)
-- `perf`: Performance improvements
-- `test`: Adding or updating tests
-- `chore`: Maintenance tasks (dependencies, config)
-- `ci`: CI/CD changes
-
-**Examples:**
-```bash
-feat(setup): add Python 3.14 support
-fix(package): correct tar.gz extraction path
-docs(readme): update installation instructions
-chore(deps): upgrade uv to latest version
-refactor(setup): improve error handling
-```
-
-**Scope (optional):** Component affected (setup, package, docs, etc.)
-
-### Pull Request Process
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes with conventional commits
-4. Run tests and linting (`pytest && black --check .`)
-5. Update documentation if needed
-6. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request with:
-   - Clear description of changes
-   - Link to related issues
-   - Screenshots/examples if applicable
-
-### Code Standards
-
-- **Python Code:** Follow PEP 8, use Black formatter
-- **Bash Scripts:** Use ShellCheck for validation
-- **Documentation:** Clear, concise, with examples
-- **Tests:** Add tests for new features
-
-### Before Submitting
-
-```bash
 # Format code
 black src/ tests/
 
-# Run linting
+# Lint
 flake8 src/ tests/
-
-# Run tests
-pytest tests/
-
-# Verify script works
-./setup.sh --force-clean
 ```
 
-### Set Up Commit Message Template (Optional)
+## 📊 Current Approach
+
+**Method:** Bicubic Interpolation
+- ✅ Fast and simple
+- ✅ No model download needed
+- ✅ Works offline
+- ❌ Limited quality improvement
+
+**For Better Results:**
+- Real-ESRGAN: Best for photos
+- SwinIR: Transformer-based, excellent quality
+- EDSR/WDSR: Lightweight and fast
+
+## 🎨 Use Cases
+
+- 📸 **Photo Enhancement** - Upscale old or low-res photos
+- 🎮 **Game Assets** - Improve texture quality
+- 🖼️ **Art Restoration** - Enhance artwork resolution
+- 📱 **Social Media** - Prepare images for printing
+- 🎬 **Video Frames** - Upscale individual frames
+
+## 📁 Project Structure
+
+```
+gradio-super-resolution/
+├── src/
+│   ├── __init__.py
+│   └── main.py              # Main Gradio app
+├── tests/
+│   ├── __init__.py
+│   └── test_main.py         # Unit tests
+├── .github/
+│   └── workflows/
+│       └── ci.yml           # CI/CD
+├── pyproject.toml           # Dependencies
+├── setup.sh                 # Setup script
+└── README.md
+```
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing`)
+3. Make your changes
+4. Run tests (`pytest`)
+5. Commit with conventional commits (`feat: add new feature`)
+6. Push and open a PR
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## 🐛 Troubleshooting
+
+### Port Already in Use
 
 ```bash
-# Use the included commit message template
-git config commit.template .gitmessage
-
-# Now when you commit, you'll see helpful hints
-git commit
+# Change port in src/main.py
+demo.launch(server_port=7861)
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+### Gradio Not Installing
+
+```bash
+./setup.sh --force-clean
+source .venv/bin/activate
+uv pip install gradio
+```
+
+### Image Upload Issues
+
+- Check file format (JPG, PNG supported)
+- Try smaller images first
+- Check browser console for errors
 
 ## 📄 License
 
-MIT License - See [LICENSE](LICENSE) file
+MIT License - See [LICENSE](LICENSE)
 
 ## 🙏 Acknowledgments
 
-- [python-build-standalone](https://github.com/indygreg/python-build-standalone) - Pre-built Python distributions
-- [UV](https://github.com/astral-sh/uv) - Fast Python package installer
-- Built with modern Python best practices
+- [Gradio](https://gradio.app/) - Amazing ML web interfaces
+- [Pillow](https://python-pillow.org/) - Python imaging library
+- Built with portable Python template
 
-## 📧 Support
+## 📧 Contact
 
-- 📖 [Documentation](SETUP_GUIDE.md)
-- 🐛 [Issues](https://github.com/yourusername/python-uv-template/issues)
-- 💬 [Discussions](https://github.com/yourusername/python-uv-template/discussions)
+- GitHub: [@yourusername](https://github.com/yourusername)
+- Issues: [GitHub Issues](https://github.com/yourusername/gradio-super-resolution/issues)
 
 ---
 
-⭐ If you find this template helpful, please star it!
+⭐ If you find this useful, please star the repo!
 
-**Ready to use?** Click "Use this template" above or clone and start building!
+**Ready to enhance your images?** Run `./setup.sh` and get started!
