@@ -1,16 +1,15 @@
 [project]
-name = "your-project-name"
+name = "gradio-super-resolution"
 version = "0.1.0"
 description = "A brief description of your project"
 readme = "README.md"
 requires-python = ">=3.13"
 license = {text = "MIT"}
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Lorenzo Siconolfi", email = "siconolfi.lorenzo@gmail.com"}
 ]
 
 dependencies = [
-    # Add your dependencies here
 ]
 
 [project.optional-dependencies]
