@@ -47,17 +47,6 @@ This project uses portable Python - no system Python required!
 ./setup.sh --force-clean      # Clean rebuild
 ```
 
-### Manual Installation
-
-```bash
-# Create virtual environment
-python3.13 -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies
-pip install gradio pillow numpy
-```
-
 ## 🎯 Usage
 
 ### Basic Usage
@@ -92,7 +81,7 @@ Edit `src/main.py` to customize:
 
 ```python
 demo.launch(
-    server_name="0.0.0.0",  # Listen on all interfaces
+    server_name="127.0.0.1",  # Listen on all interfaces
     server_port=7860,        # Change port
     share=True,              # Create public link (Gradio)
     show_error=True,         # Show error messages
