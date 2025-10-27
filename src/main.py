@@ -233,31 +233,53 @@ def upscale_image(image: Image.Image, scale_factor: int, progress=gr.Progress())
         
         # Get original dimensions
         orig_width, orig_height = image.size
+        original_size = (orig_width, orig_height)  # Save for display
         
-        # TEMPORARY FIX: Force Lanczos for 2x due to model issues
-        # TODO: Fix the 2x model or find a working alternative
+        # FIX: Use 4x model for 2x upscaling (2x model expects 12 channels)
+        # Strategy: Downscale image to 50%, then use 4x model to get 2x final result
+        use_4x_for_2x = False
         if scale_factor == 2:
-            print("⚠️  2x model has issues, using high-quality Lanczos instead...")
-            progress(0.5, desc="Using high-quality Lanczos upscaling...")
-            new_size = (orig_width * scale_factor, orig_height * scale_factor)
-            upscaled = image.resize(new_size, Image.LANCZOS)
-            elapsed_time = time.time() - start_time
-            info = f"""
-### ✅ Enhancement Complete
+            print("🎨 Using 4x AI model for 2x upscaling (better quality)...")
+            progress(0.1, desc="Preparing for AI upscaling...")
+            
+            # Downscale to 50% first
+            half_width = orig_width // 2
+            half_height = orig_height // 2
+            downscaled = image.resize((half_width, half_height), Image.LANCZOS)
+            print(f"   Downscaled to {half_width}×{half_height}")
+            
+            # Load 4x model
+            progress(0.2, desc="Loading 4x model...")
+            model, device = load_model(4)
+            
+            if model is None or device.type == 'cpu':
+                # Fallback if model fails
+                print("⚠️  Model loading failed, using Lanczos fallback...")
+                progress(0.5, desc="Using Lanczos fallback...")
+                new_size = (original_size[0] * 2, original_size[1] * 2)
+                upscaled = image.resize(new_size, Image.LANCZOS)
+                elapsed_time = time.time() - start_time
+                info = f"""
+### ✅ Enhancement Complete (Fallback)
 
-**Original Size:** {orig_width} × {orig_height} px
+**Original Size:** {original_size[0]} × {original_size[1]} px
 **Enhanced Size:** {upscaled.size[0]} × {upscaled.size[1]} px
-**Scale Factor:** {scale_factor}×
-**Method:** Lanczos Resampling (High Quality)
+**Scale Factor:** 2×
+**Method:** Lanczos Resampling
 **Processing Time:** {elapsed_time:.2f}s
 
-💡 *2x AI model disabled due to quality issues. Using high-quality Lanczos interpolation.*
-            """
-            return upscaled, info
-        
-        # Load model
-        progress(0.1, desc="Loading model...")
-        model, device = load_model(scale_factor)
+💡 *Using Lanczos fallback (model unavailable or CPU detected).*
+                """
+                return upscaled, info
+            
+            # Use the downscaled image for processing
+            image = downscaled
+            orig_width, orig_height = half_width, half_height
+            use_4x_for_2x = True
+        else:
+            # Load model normally for 4x
+            progress(0.1, desc="Loading model...")
+            model, device = load_model(scale_factor)
         
         if model is None:
             # Fallback to Lanczos
@@ -381,18 +403,26 @@ def upscale_image(image: Image.Image, scale_factor: int, progress=gr.Progress())
             device_name = "NVIDIA GPU (CUDA)"
         else:
             device_name = "CPU"
+        
+        # Show correct info based on whether we used 4x model for 2x
+        if use_4x_for_2x:
+            model_info = "Real-ESRGAN 4× (used for 2× via smart downscaling)"
+            note = "🎨 *Used 4× AI model with smart downscaling for better 2× quality!*"
+        else:
+            model_info = "Real-ESRGAN (RRDBNet)"
+            note = "🎨 *AI-powered super-resolution complete!*"
+        
         info = f"""
 ### ✅ Enhancement Complete!
 
-**Original Size:** {orig_width} × {orig_height} px
+**Original Size:** {original_size[0]} × {original_size[1]} px
 **Enhanced Size:** {new_width} × {new_height} px
 **Scale Factor:** {scale_factor}×
-**Model:** Real-ESRGAN (RRDBNet)
+**Model:** {model_info}
 **Device:** {device_name}
-**Pixel Increase:** +{pixel_increase:.1f}%
 **Processing Time:** {elapsed_time:.2f}s
 
-🎨 *AI-powered super-resolution complete!*
+{note}
         """
         
         print(f"✅ Enhancement complete: {new_width}×{new_height}")
@@ -447,7 +477,7 @@ def create_interface() -> gr.Blocks:
                     choices=[2, 4],
                     value=4,
                     label="Upscale Factor",
-                    info="2× uses Lanczos (fast), 4× uses AI (best quality)",
+                    info="Both use AI! 2× uses 4× model with smart downscaling",
                 )
                 
                 submit_btn = gr.Button(
