@@ -1,13 +1,16 @@
-# Quick Reference Card
+# Quick Reference Card - Gradio Super Resolution
 
 ## 🚀 Common Commands
 
 ```bash
-# Setup (uses existing or downloads portable Python)
+# Setup (installs Python 3.12 and dependencies with uv)
 ./setup.sh
 
 # Clean rebuild (removes everything, starts fresh)
-./setupsh --force-clean
+./setup.sh --force-clean
+
+# Run the app
+python src/main.py
 
 # Show help
 ./setup.sh --help
@@ -17,33 +20,37 @@
 
 ```
 First time?
-└─ ./setup-portable.sh
+└─ ./setup.sh
 
 Something broken?
-└─ ./setup-portable.sh --force-clean
+└─ ./setup.sh --force-clean
 
 Changed dependencies?
 ├─ Edit pyproject.toml
-└─ uv lock && uv sync
+└─ uv sync --all-extras
+
+Model download failed?
+└─ rm -rf model_dir/ && python src/main.py
 ```
 
 ## 🎯 Common Workflows
 
 | Task | Commands |
 |------|----------|
-| **Initial setup** | `./setup-portable.sh` |
-| **Daily development** | `source .venv/bin/activate` → `python src/main.py` |
-| **Add dependency** | Edit `pyproject.toml` → `uv lock` → `uv sync` |
-| **Fix issues** | `./setup-portable.sh --force-clean` |
-| **Complete reset** | `./setup-portable.sh --force-clean` |
+| **Initial setup** | `./setup.sh` |
+| **Run app** | `source .venv/bin/activate` → `python src/main.py` |
+| **Add dependency** | Edit `pyproject.toml` → `uv sync --all-extras` |
+| **Run tests** | `uv run pytest` |
+| **Format code** | `uv run black src/ tests/` |
+| **Fix issues** | `./setup.sh --force-clean` |
 
 ## 📁 What Gets Created
 
 ```
-.python/          # Portable Python (~80MB, gitignored)
-.venv/            # Virtual environment (~50MB, gitignored)
+.python/          # Portable Python 3.12 (~80MB, gitignored)
+.venv/            # Virtual environment (~200MB with PyTorch, gitignored)
+model_dir/        # Real-ESRGAN model (~67MB, gitignored)
 uv.lock           # Locked dependencies (committed)
-dist/             # Packages (~50MB compressed, gitignored)
 ```
 
 ## 🎨 Color Guide
@@ -58,63 +65,76 @@ dist/             # Packages (~50MB compressed, gitignored)
 
 | Operation | Time | Network |
 |-----------|------|---------|
-| First setup (download) | 1-2 min | Required |
+| First setup (Python + deps) | 2-3 min | Required |
+| Model download (first run) | 30-60 sec | Required |
 | Reuse existing Python | 10-30 sec | Optional |
-| Clean rebuild | 1-2 min | Required |
+| Clean rebuild | 2-3 min | Required |
+| Image processing (GPU) | 5-15 sec | Not required |
+| Image processing (CPU) | 30-120 sec | Not required |
 
 ## 💾 Disk Space
 
 | Item | Size |
 |------|------|
-| Portable Python | ~80 MB |
-| Virtual environment | ~50 MB |
-| Total unpackaged | ~150 MB |
-| Packaged (tar.gz) | ~50 MB |
+| Portable Python 3.12 | ~80 MB |
+| Virtual environment (with PyTorch) | ~200 MB |
+| Real-ESRGAN model | ~67 MB |
+| Total | ~350 MB |
 
 ## 🚫 .gitignore
 
 Always ignore these:
 ```gitignore
-.python/
-.venv/
-dist/
-uv.lock          # Optional: commit for reproducibility
+.python/         # Portable Python installation
+.venv/           # Virtual environment
+model_dir/       # Downloaded AI models
+__pycache__/     # Python cache
+*.pyc            # Compiled Python
+uv.lock          # Lock file (commit for reproducibility)
 ```
 
 ## 🔧 Quick Fixes
 
 ```bash
 # Virtual environment broken
-rm -rf .venv/ && ./setup-portable.sh
+rm -rf .venv/ && ./setup.sh
 
 # Everything broken
-./setup-portable.sh --force-clean
+./setup.sh --force-clean
 
-# UV not working
-source .venv/bin/activate && pip install --upgrade uv
+# Model download failed
+rm -rf model_dir/ && python src/main.py
 
 # Dependencies out of sync
-uv lock && uv sync
+uv sync --all-extras
+
+# Port already in use
+# Edit src/main.py: demo.launch(server_port=7861)
 ```
 
-## 🎯 Key Principles
+## 🎯 Key Features
 
-1. **Always portable** - Never uses system Python
-2. **Reuse when possible** - Keeps existing `.python/` if found
-3. **Fresh venv** - Always recreates `.venv/`
-4. **Clean on demand** - `--force-clean` for fresh start
+1. **Real-ESRGAN AI** - State-of-the-art super-resolution
+2. **GPU Accelerated** - MPS (Apple Silicon) and CUDA support
+3. **Auto-download** - Models download on first run
+4. **Natural Look** - Adjustable post-processing
+5. **Smart 2x** - Uses 4x model with downscaling
 
 ## 📞 Need Help?
 
 ```bash
 # Show help
-./setup-portable.sh --help
+./setup.sh --help
 
-# Check versions
-.python/bin/python3 --version
-source .venv/bin/activate && python --version
+# Check Python version
+python --version  # Should be 3.12+
 
-# Debug
-ls -la .python/bin/
-ls -la .venv/bin/
+# Check GPU availability
+python -c "import torch; print(f'MPS: {torch.backends.mps.is_available()}, CUDA: {torch.cuda.is_available()}')"
+
+# Test model loading
+python -c "from src.main import load_model; print(load_model(4))"
+
+# View logs
+python src/main.py  # Check console for debug output
 ```

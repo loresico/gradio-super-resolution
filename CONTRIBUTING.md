@@ -24,12 +24,13 @@ Thank you for considering contributing to this project! This guide will help you
 ### 1. Fork and Clone
 
 ```bash
-# Fork on GitHub, then clone your fork
-git clone https://github.com/YOUR_USERNAME/python-uv-template.git
-cd python-uv-template
+# Fork on GitHub (click "Fork" button), then clone your fork
+# Replace YOUR_USERNAME with your actual GitHub username (e.g., johndoe)
+git clone https://github.com/YOUR_USERNAME/gradio-super-resolution.git
+cd gradio-super-resolution
 
-# Add upstream remote
-git remote add upstream https://github.com/ORIGINAL_OWNER/python-uv-template.git
+# Add upstream remote to sync with main repo
+git remote add upstream https://github.com/loresico/gradio-super-resolution.git
 ```
 
 ### 2. Create a Branch
@@ -79,12 +80,14 @@ Must be one of:
 
 The scope should specify the place of the commit change:
 
-- `setup` - Changes to setup-portable.sh
-- `package` - Changes to package-portable.sh
+- `model` - AI model changes
+- `ui` - Gradio interface changes
+- `processing` - Image processing logic
 - `deps` - Dependency updates
 - `docs` - Documentation
 - `config` - Configuration files
 - `ci` - CI/CD related
+- `setup` - Setup scripts
 
 ### Subject
 
@@ -108,52 +111,52 @@ The scope should specify the place of the commit change:
 
 #### Simple Feature
 ```
-feat(setup): add Python 3.14 support
+feat(ui): add natural look strength slider
 ```
 
 #### Bug Fix with Details
 ```
-fix(package): correct tar.gz extraction path
+fix(model): correct 2x upscaling dark output issue
 
-The extraction was failing on macOS because of incorrect
-strip-components value. Changed from 2 to 1.
+The 2x model was producing dark images due to incompatible
+channel count. Now using 4x model with smart downscaling.
 
 Fixes #42
 ```
 
 #### Documentation Update
 ```
-docs(readme): update installation instructions
+docs(readme): update Real-ESRGAN usage instructions
 
-Added clarification about Python version compatibility
-and release date matching.
+Added clarification about GPU acceleration and model
+auto-download process.
 ```
 
 #### Breaking Change
 ```
-feat(setup): change default Python to 3.13
+feat(model): remove Lanczos fallback, AI-only approach
 
-BREAKING CHANGE: Default Python version changed from 3.12 to 3.13.
-Users need to run `./setup-portable.sh --force-clean` to upgrade.
+BREAKING CHANGE: CPU users no longer get Lanczos fallback.
+AI model will run on CPU (slower). GPU strongly recommended.
 
 Closes #89
 ```
 
 #### Dependency Update
 ```
-chore(deps): upgrade uv to 0.5.0
+chore(deps): upgrade gradio to 5.49.1
 
-- Updated uv from 0.4.x to 0.5.0
-- Includes performance improvements
+- Updated gradio from 5.0.x to 5.49.1
+- Includes UI improvements and bug fixes
 - No breaking changes
 ```
 
 #### Refactoring
 ```
-refactor(setup): improve error handling
+refactor(processing): extract post-processing to separate function
 
-Extracted error handling into separate functions
-for better readability and reusability.
+Extracted natural enhancement logic into separate function
+for better readability and testability.
 ```
 
 ## 🔄 Pull Request Process
@@ -169,19 +172,22 @@ git rebase upstream/main
 
 ```bash
 # Format code
-black src/ tests/
+uv run black src/ tests/
 
-# Check code style
-flake8 src/ tests/
+# Check formatting
+uv run black --check src/ tests/
 
-# Type checking
-mypy src/
+# Lint code
+uv run flake8 src/ tests/
 
 # Run tests
-pytest tests/ -v
+uv run pytest -v
+
+# Run tests with coverage
+uv run pytest --cov=src --cov-report=term-missing
 
 # Test the setup script
-./setup-portable.sh --force-clean
+./setup.sh --force-clean
 ```
 
 ### 3. Push Your Changes
@@ -196,7 +202,7 @@ Go to GitHub and create a Pull Request with:
 
 **Title:** Follow commit message convention
 ```
-feat(setup): add Python 3.14 support
+feat(model): add support for custom model architectures
 ```
 
 **Description Template:**
@@ -234,39 +240,67 @@ Closes #(issue number)
 
 ### Prerequisites
 
-- Python 3.13+
-- UV package manager
+- Python 3.12+
+- [uv](https://github.com/astral-sh/uv) package manager
 - Git
+- (Optional) NVIDIA GPU with CUDA or Apple Silicon Mac for GPU acceleration
 
 ### Setup Development Environment
 
 ```bash
-# Run setup
-./setup-portable.sh
+# Run setup (installs Python and dependencies)
+./setup.sh
 
 # Activate virtual environment
 source .venv/bin/activate
 
-# Install dev dependencies
-uv pip install -e ".[dev]"
+# Install all dependencies including dev tools
+uv sync --all-extras
+
+# Verify installation
+python src/main.py
 ```
 
 ### Project Structure
 
 ```
-.
-├── src/                    # Source code
+gradio-super-resolution/
+├── src/                     # Source code
 │   ├── __init__.py
-│   └── main.py
-├── tests/                  # Test files
+│   └── main.py             # Main Gradio app with Real-ESRGAN
+├── tests/                   # Test files
 │   ├── __init__.py
-│   └── test_main.py
-├── setup-portable.sh       # Setup script
-├── package-portable.sh     # Packaging script
-├── verify-python-version.sh # Verification script
-├── pyproject.toml          # Project configuration
-└── README.md              # Documentation
+│   └── test_main.py        # Unit tests
+├── model_dir/              # Downloaded AI models (gitignored)
+│   └── RealESRGAN_x4plus.pth
+├── .github/
+│   └── workflows/
+│       └── ci.yml          # CI/CD with uv
+├── setup.sh                # Setup script
+├── verify_python_version.sh # Python version verification
+├── pyproject.toml          # Project config & dependencies
+├── uv.lock                 # Locked dependencies
+├── CONTRIBUTING.md         # This file
+└── README.md               # Documentation
 ```
+
+### Working with AI Models
+
+**Model Directory:**
+- AI models are stored in `model_dir/` (gitignored)
+- Models auto-download on first run (~67MB)
+- Development: Download once, shared across runs
+
+**Adding New Models:**
+1. Add download URL to `load_model()` function
+2. Update model architecture if needed (RRDBNet parameters)
+3. Test with small images first
+4. Update documentation
+
+**Model Caching:**
+- Models are cached in memory after first load
+- Clear cache: Restart Python process
+- Test different scales: Models are cached per scale
 
 ## 🧪 Testing
 
@@ -274,19 +308,52 @@ uv pip install -e ".[dev]"
 
 ```bash
 # Run all tests
-pytest
+uv run pytest
 
 # Run with coverage
-pytest --cov=src --cov-report=html
+uv run pytest --cov=src --cov-report=html
+
+# Run with terminal coverage report
+uv run pytest --cov=src --cov-report=term-missing
 
 # Run specific test file
-pytest tests/test_main.py
+uv run pytest tests/test_main.py
 
 # Run with verbose output
-pytest -v
+uv run pytest -v
 
 # Run and show print statements
-pytest -s
+uv run pytest -s
+
+# Skip slow tests (model loading)
+uv run pytest -m "not slow"
+```
+
+### Testing Best Practices
+
+**For AI Model Tests:**
+- Mock model loading to speed up tests
+- Use small test images (100x100px)
+- Test with CPU to avoid GPU dependencies in CI
+- Mark slow tests with `@pytest.mark.slow`
+
+**Example:**
+```python
+import pytest
+from unittest.mock import patch
+
+@pytest.mark.slow
+def test_real_model_loading():
+    """Test actual model loading (slow, runs on real GPU)."""
+    from src.main import load_model
+    model, device = load_model(4)
+    assert model is not None
+
+def test_upscale_with_mock():
+    """Test upscale logic with mocked model (fast)."""
+    with patch('src.main.load_model') as mock_load:
+        # Test logic without loading real model
+        pass
 ```
 
 ### Writing Tests
@@ -297,13 +364,23 @@ pytest -s
 - Use descriptive names
 - Test edge cases
 - Add docstrings
+- Mock heavy operations (model loading, GPU operations)
 
 Example:
 ```python
-def test_greet_with_custom_name():
-    """Test greet function with a custom name."""
-    result = greet("Alice")
-    assert result == "Hello, Alice!"
+def test_upscale_image_with_2x_scale():
+    """Test upscale_image function with 2x scale factor."""
+    from PIL import Image
+    from src.main import upscale_image
+    
+    # Create test image
+    img = Image.new('RGB', (100, 100), color='red')
+    
+    # Test upscaling (mock model loading for speed)
+    result, info = upscale_image(img, scale_factor=2, natural_strength=0.5)
+    
+    assert result is not None
+    assert "2×" in info
 ```
 
 ## 🎨 Code Style
@@ -312,22 +389,29 @@ def test_greet_with_custom_name():
 
 - Follow [PEP 8](https://peps.python.org/pep-0008/)
 - Use [Black](https://black.readthedocs.io/) for formatting (88 char line length)
-- Use [isort](https://pycqa.github.io/isort/) for import sorting
 - Use type hints where appropriate
 - Write docstrings for functions and classes
+- Keep functions focused and testable
 
 ```python
-def greet(name: str) -> str:
+def upscale_image(
+    image: Image.Image, 
+    scale_factor: int, 
+    natural_strength: float = 0.5
+) -> tuple[Image.Image, str]:
     """
-    Return a greeting message.
+    Upscale an image using Real-ESRGAN AI model.
     
     Args:
-        name: The name to greet
+        image: Input PIL Image
+        scale_factor: Upscaling factor (2 or 4)
+        natural_strength: Natural look strength (0.0-1.0)
         
     Returns:
-        A greeting string
+        Tuple of (enhanced_image, info_text)
     """
-    return f"Hello, {name}!"
+    # Implementation here
+    pass
 ```
 
 ### Bash Scripts
@@ -343,9 +427,10 @@ def greet(name: str) -> str:
 set -e
 
 # Configuration
-PYTHON_VERSION="3.13.9"
+MODEL_URL="https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth"
 
-echo "Setting up Python ${PYTHON_VERSION}"
+echo "Downloading Real-ESRGAN model..."
+curl -L "${MODEL_URL}" -o model_dir/RealESRGAN_x4plus.pth
 ```
 
 ### Documentation
@@ -399,12 +484,14 @@ Steps to reproduce:
 What you expected to happen
 
 **Environment**
-- OS: [e.g., macOS 13.0, Ubuntu 22.04]
-- Python version: [e.g., 3.13.9]
-- Script output: [paste here]
+- OS: [e.g., macOS 14.0, Ubuntu 22.04, Windows 11]
+- Python version: [e.g., 3.12.0]
+- GPU: [e.g., Apple M4, NVIDIA RTX 4090, CPU only]
+- Browser: [e.g., Chrome 120, Safari 17]
+- Error output: [paste here]
 
 **Additional context**
-Any other relevant information
+Any other relevant information (image size, model loading status, etc.)
 ```
 
 ## 💡 Feature Requests
@@ -427,9 +514,10 @@ Any other context or screenshots
 
 ## 📞 Questions?
 
-- Open a [Discussion](https://github.com/username/repo/discussions)
+- Open a [Discussion](https://github.com/loresico/gradio-super-resolution/discussions)
 - Check the [README](README.md)
-- Review [existing issues](https://github.com/username/repo/issues)
+- Review [existing issues](https://github.com/loresico/gradio-super-resolution/issues)
+- Check Real-ESRGAN documentation for model-specific questions
 
 ## 🙏 Thank You!
 

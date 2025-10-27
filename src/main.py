@@ -238,7 +238,7 @@ def upscale_image(image: Image.Image, scale_factor: int, natural_strength: float
         use_4x_for_2x = False
         if scale_factor == 2:
             print("🎨 Using 4x AI model for 2x upscaling (better quality)...")
-            progress(0.1, desc="Preparing for AI upscaling...")
+            progress(0.05, desc="Preparing for 2× upscaling...")
             
             # Downscale to 50% first
             half_width = orig_width // 2
@@ -247,7 +247,7 @@ def upscale_image(image: Image.Image, scale_factor: int, natural_strength: float
             print(f"   Downscaled to {half_width}×{half_height}")
             
             # Load 4x model
-            progress(0.2, desc="Loading 4x model...")
+            progress(0.1, desc="Loading AI model...")
             model, device = load_model(4)
             
             if model is None:
@@ -259,19 +259,19 @@ def upscale_image(image: Image.Image, scale_factor: int, natural_strength: float
             use_4x_for_2x = True
         else:
             # Load model normally for 4x
-            progress(0.1, desc="Loading model...")
+            progress(0.1, desc="Loading AI model...")
             model, device = load_model(scale_factor)
         
         if model is None:
             return None, "❌ **Error:** Failed to load AI model. Check that model file exists in `model_dir/` folder."
         
         # Convert to RGB if needed
-        progress(0.2, desc="Preparing image...")
+        progress(0.15, desc="Preparing image...")
         if image.mode != 'RGB':
             image = image.convert('RGB')
         
         # Convert to tensor
-        progress(0.3, desc="Converting to tensor...")
+        progress(0.2, desc="Converting to tensor...")
         transform = transforms.Compose([
             transforms.ToTensor(),
         ])
@@ -280,7 +280,7 @@ def upscale_image(image: Image.Image, scale_factor: int, natural_strength: float
         print(f"🔍 Input tensor: shape={img_tensor.shape}, range=[{img_tensor.min():.3f}, {img_tensor.max():.3f}]")
         
         # Handle 12-channel input models by padding with zeros
-        progress(0.4, desc="Checking model input...")
+        progress(0.25, desc="Checking model input...")
         model_input_channels = model.conv_first.weight.shape[1]
         print(f"🔍 Model expects {model_input_channels} channels, input has {img_tensor.shape[1]} channels")
         
@@ -293,17 +293,16 @@ def upscale_image(image: Image.Image, scale_factor: int, natural_strength: float
             print(f"⚠️  Channel mismatch! Model expects {model_input_channels}, got {img_tensor.shape[1]}")
         
         # Move to device after padding
-        progress(0.5, desc="Moving to device...")
+        progress(0.3, desc="Moving to device...")
         img_tensor = img_tensor.to(device)
         
         # Process image
-        progress(0.6, desc=f"Enhancing image from {orig_width}×{orig_height} to {orig_width*scale_factor}×{orig_height*scale_factor}...")
-        print(f"🎨 Enhancing image ({orig_width}×{orig_height}) with {scale_factor}x model...")
+        progress(0.35, desc=f"Enhancing {orig_width}×{orig_height} → {orig_width*scale_factor}×{orig_height*scale_factor}...")
         with torch.no_grad():
             output = model(img_tensor)
         
         # Convert back to PIL
-        progress(0.8, desc="Converting result...")
+        progress(0.75, desc="Converting result...")
         output = output.squeeze(0).cpu()
         
         # Debug: Check output range and statistics
@@ -332,7 +331,7 @@ def upscale_image(image: Image.Image, scale_factor: int, natural_strength: float
         
         # Post-processing: Reduce over-sharpening and digitalization
         if natural_strength > 0:
-            progress(0.85, desc="Applying natural enhancement...")
+            progress(0.8, desc="Applying natural enhancement...")
             from PIL import ImageFilter, ImageEnhance
             
             # Apply blur based on strength (0 = no blur, 1 = max blur of 1.5)
@@ -504,6 +503,7 @@ def create_interface() -> gr.Blocks:
             fn=upscale_image,
             inputs=[input_image, scale_factor, natural_strength],
             outputs=[output_image, info_text],
+            show_progress="minimal",  # Minimal progress indicator
         )
         
         gr.Markdown("""
