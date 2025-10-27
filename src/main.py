@@ -234,6 +234,27 @@ def upscale_image(image: Image.Image, scale_factor: int, progress=gr.Progress())
         # Get original dimensions
         orig_width, orig_height = image.size
         
+        # TEMPORARY FIX: Force Lanczos for 2x due to model issues
+        # TODO: Fix the 2x model or find a working alternative
+        if scale_factor == 2:
+            print("⚠️  2x model has issues, using high-quality Lanczos instead...")
+            progress(0.5, desc="Using high-quality Lanczos upscaling...")
+            new_size = (orig_width * scale_factor, orig_height * scale_factor)
+            upscaled = image.resize(new_size, Image.LANCZOS)
+            elapsed_time = time.time() - start_time
+            info = f"""
+### ✅ Enhancement Complete
+
+**Original Size:** {orig_width} × {orig_height} px
+**Enhanced Size:** {upscaled.size[0]} × {upscaled.size[1]} px
+**Scale Factor:** {scale_factor}×
+**Method:** Lanczos Resampling (High Quality)
+**Processing Time:** {elapsed_time:.2f}s
+
+💡 *2x AI model disabled due to quality issues. Using high-quality Lanczos interpolation.*
+            """
+            return upscaled, info
+        
         # Load model
         progress(0.1, desc="Loading model...")
         model, device = load_model(scale_factor)
@@ -426,7 +447,7 @@ def create_interface() -> gr.Blocks:
                     choices=[2, 4],
                     value=4,
                     label="Upscale Factor",
-                    info="2× is faster, 4× gives maximum detail",
+                    info="2× uses Lanczos (fast), 4× uses AI (best quality)",
                 )
                 
                 submit_btn = gr.Button(
