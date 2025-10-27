@@ -504,6 +504,7 @@ def create_interface() -> gr.Blocks:
             fn=upscale_image,
             inputs=[input_image, scale_factor, natural_strength],
             outputs=[output_image, info_text],
+            show_progress="minimal",  # Minimal progress indicator
         )
         
         gr.Markdown("""
