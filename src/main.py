@@ -287,15 +287,20 @@ def upscale_image(image: Image.Image, scale_factor: int, progress=gr.Progress())
         ])
         
         img_tensor = transform(image).unsqueeze(0)
+        print(f"🔍 Input tensor: shape={img_tensor.shape}, range=[{img_tensor.min():.3f}, {img_tensor.max():.3f}]")
         
         # Handle 12-channel input models by padding with zeros
         progress(0.4, desc="Checking model input...")
         model_input_channels = model.conv_first.weight.shape[1]
+        print(f"🔍 Model expects {model_input_channels} channels, input has {img_tensor.shape[1]} channels")
+        
         if model_input_channels == 12 and img_tensor.shape[1] == 3:
             print("📊 Model expects 12 channels, padding input...")
             # Pad RGB (3 channels) to 12 channels with zeros
             padding = torch.zeros(img_tensor.shape[0], 9, img_tensor.shape[2], img_tensor.shape[3])
             img_tensor = torch.cat([img_tensor, padding], dim=1)
+        elif model_input_channels != img_tensor.shape[1]:
+            print(f"⚠️  Channel mismatch! Model expects {model_input_channels}, got {img_tensor.shape[1]}")
         
         # Move to device after padding
         progress(0.5, desc="Moving to device...")
@@ -303,7 +308,7 @@ def upscale_image(image: Image.Image, scale_factor: int, progress=gr.Progress())
         
         # Process image
         progress(0.6, desc=f"Enhancing image from {orig_width}×{orig_height} to {orig_width*scale_factor}×{orig_height*scale_factor}...")
-        print(f"🎨 Enhancing image ({orig_width}×{orig_height})...")
+        print(f"🎨 Enhancing image ({orig_width}×{orig_height}) with {scale_factor}x model...")
         with torch.no_grad():
             output = model(img_tensor)
         
@@ -311,15 +316,31 @@ def upscale_image(image: Image.Image, scale_factor: int, progress=gr.Progress())
         progress(0.8, desc="Converting result...")
         output = output.squeeze(0).cpu()
         
-        # Debug: Check output range
-        print(f"🔍 Output range: min={output.min().item():.3f}, max={output.max().item():.3f}")
+        # Debug: Check output range and statistics
+        output_min = output.min().item()
+        output_max = output.max().item()
+        output_mean = output.mean().item()
+        print(f"🔍 Output tensor: shape={output.shape}, min={output_min:.3f}, max={output_max:.3f}, mean={output_mean:.3f}")
         
-        # Normalize if output is in unusual range
-        if output.max() > 1.5 or output.min() < -0.5:
-            print("⚠️  Unusual output range detected, normalizing...")
-            output = (output - output.min()) / (output.max() - output.min())
+        # Check per-channel statistics
+        for c in range(min(3, output.shape[0])):
+            ch_min = output[c].min().item()
+            ch_max = output[c].max().item()
+            ch_mean = output[c].mean().item()
+            print(f"   Channel {c}: min={ch_min:.3f}, max={ch_max:.3f}, mean={ch_mean:.3f}")
+        
+        # Normalize if output is in unusual range or if mean is too dark
+        if output_max > 1.5 or output_min < -0.5:
+            print("⚠️  Unusual output range detected, normalizing to [0, 1]...")
+            output = (output - output_min) / (output_max - output_min + 1e-8)
+        elif output_mean < 0.1 and scale_factor == 2:
+            # Special case: 2x model produces very dark output
+            print("⚠️  2x model output is too dark, applying normalization...")
+            output = (output - output_min) / (output_max - output_min + 1e-8)
         else:
             output = output.clamp(0, 1)
+        
+        print(f"🔍 Final output range: min={output.min().item():.3f}, max={output.max().item():.3f}, mean={output.mean().item():.3f}")
         
         output = transforms.ToPILImage()(output)
         
