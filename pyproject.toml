@@ -1,16 +1,20 @@
 [project]
-name = "your-project-name"
+name = "gradio-super-resolution"
 version = "0.1.0"
 description = "A brief description of your project"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 license = {text = "MIT"}
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Lorenzo Siconolfi", email = "siconolfi.lorenzo@gmail.com"}
 ]
 
 dependencies = [
-    # Add your dependencies here
+    "gradio>=5.49.1",
+    "numpy==1.26.4",
+    "pillow>=11.3.0",
+    "torch==2.2.2", 
+    "torchvision==0.17.2",
 ]
 
 [project.optional-dependencies]
