@@ -24,11 +24,12 @@ Thank you for considering contributing to this project! This guide will help you
 ### 1. Fork and Clone
 
 ```bash
-# Fork on GitHub, then clone your fork
+# Fork on GitHub (click "Fork" button), then clone your fork
+# Replace YOUR_USERNAME with your actual GitHub username
 git clone https://github.com/YOUR_USERNAME/gradio-super-resolution.git
 cd gradio-super-resolution
 
-# Add upstream remote
+# Add upstream remote to sync with main repo
 git remote add upstream https://github.com/loresico/gradio-super-resolution.git
 ```
 
