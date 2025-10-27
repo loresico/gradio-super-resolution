@@ -36,6 +36,9 @@ python_files = ["test_*.py"]
 markers = [
     "slow: marks tests as slow (require model download/GPU, deselect with '-m \"not slow\"')",
 ]
+filterwarnings = [
+    "ignore::DeprecationWarning:torchvision.transforms.functional",
+]
 
 # Coverage configuration
 [tool.coverage.run]
