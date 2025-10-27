@@ -28,7 +28,7 @@ dev = [
 # Black configuration
 [tool.black]
 line-length = 88
-target-version = ['py313']
+target-version = ['py312']
 
 # Pytest configuration
 [tool.pytest.ini_options]

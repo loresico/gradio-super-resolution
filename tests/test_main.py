@@ -57,11 +57,14 @@ class TestUpscaleImage:
         assert result is not None
         assert result.mode == "RGBA"
 
-    @pytest.mark.parametrize("width,height,scale", [
-        (100, 100, 2),
-        (50, 75, 3),
-        (200, 150, 4),
-    ])
+    @pytest.mark.parametrize(
+        "width,height,scale",
+        [
+            (100, 100, 2),
+            (50, 75, 3),
+            (200, 150, 4),
+        ],
+    )
     def test_upscale_various_sizes(self, width, height, scale):
         """Test upscaling with various image sizes."""
         img = Image.new("RGB", (width, height))
