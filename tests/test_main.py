@@ -55,11 +55,11 @@ class TestUpscaleImage:
             mock_model = MagicMock()
             mock_device = torch.device("cpu")
             mock_load.return_value = (mock_model, mock_device)
-            
+
             # Mock model output
             mock_model.return_value = torch.rand(1, 3, 100, 100)
             mock_model.conv_first.weight.shape = [64, 3, 3, 3]
-            
+
             result, info = upscale_image(img, 2, natural_strength=0.0)
 
             # Image should be converted to RGB internally
@@ -99,7 +99,7 @@ class TestUpscaleImage:
             mock_model = MagicMock()
             mock_device = torch.device("cpu")
             mock_load.return_value = (mock_model, mock_device)
-            
+
             expected_width = width * scale
             expected_height = height * scale
             mock_model.return_value = torch.rand(1, 3, expected_height, expected_width)
@@ -146,6 +146,7 @@ class TestModelLoading:
         """Test that models are cached after first load."""
         # Clear cache first
         from src.main import _model_cache
+
         _model_cache.clear()
 
         with patch("src.main.torch.load") as mock_load:
@@ -159,7 +160,7 @@ class TestModelLoading:
 
             # First load
             model1, device1 = load_model(4)
-            
+
             # Second load should use cache (torch.load not called again)
             model2, device2 = load_model(4)
 
