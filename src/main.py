@@ -250,25 +250,8 @@ def upscale_image(image: Image.Image, scale_factor: int, natural_strength: float
             progress(0.2, desc="Loading 4x model...")
             model, device = load_model(4)
             
-            if model is None or device.type == 'cpu':
-                # Fallback if model fails
-                print("⚠️  Model loading failed, using Lanczos fallback...")
-                progress(0.5, desc="Using Lanczos fallback...")
-                new_size = (original_size[0] * 2, original_size[1] * 2)
-                upscaled = image.resize(new_size, Image.LANCZOS)
-                elapsed_time = time.time() - start_time
-                info = f"""
-### ✅ Enhancement Complete (Fallback)
-
-**Original Size:** {original_size[0]} × {original_size[1]} px
-**Enhanced Size:** {upscaled.size[0]} × {upscaled.size[1]} px
-**Scale Factor:** 2×
-**Method:** Lanczos Resampling
-**Processing Time:** {elapsed_time:.2f}s
-
-💡 *Using Lanczos fallback (model unavailable or CPU detected).*
-                """
-                return upscaled, info
+            if model is None:
+                return None, "❌ **Error:** Failed to load 4x AI model for 2x upscaling. Check that model file exists in `model_dir/` folder."
             
             # Use the downscaled image for processing
             image = downscaled
@@ -280,41 +263,7 @@ def upscale_image(image: Image.Image, scale_factor: int, natural_strength: float
             model, device = load_model(scale_factor)
         
         if model is None:
-            # Fallback to Lanczos
-            progress(0.5, desc="Using fallback method...")
-            new_size = (orig_width * scale_factor, orig_height * scale_factor)
-            upscaled = image.resize(new_size, Image.LANCZOS)
-            info = f"""
-### ⚠️ Using Fallback Method
-
-**Original Size:** {orig_width} × {orig_height} px
-**Enhanced Size:** {upscaled.size[0]} × {upscaled.size[1]} px
-**Method:** Lanczos (Model loading failed)
-
-💡 **Fix:** Check that model file exists in `model_dir/` folder
-            """
-            return upscaled, info
-        
-        # Check if CPU and use fallback for speed (MPS and CUDA use AI model)
-        if device.type == 'cpu':
-            progress(0.5, desc="CPU detected - using fast Lanczos upscaling...")
-            print("⚠️  CPU detected - using Lanczos fallback for better performance")
-            new_size = (orig_width * scale_factor, orig_height * scale_factor)
-            upscaled = image.resize(new_size, Image.LANCZOS)
-            elapsed_time = time.time() - start_time
-            info = f"""
-### ✅ Enhancement Complete (Fast Mode)
-
-**Original Size:** {orig_width} × {orig_height} px
-**Enhanced Size:** {upscaled.size[0]} × {upscaled.size[1]} px
-**Scale Factor:** {scale_factor}×
-**Method:** Lanczos Resampling
-**Device:** CPU (AI model too slow on CPU)
-**Processing Time:** {elapsed_time:.2f}s
-
-💡 *For AI-powered results, use a Mac with Apple Silicon or a GPU. CPU uses high-quality Lanczos interpolation.*
-            """
-            return upscaled, info
+            return None, "❌ **Error:** Failed to load AI model. Check that model file exists in `model_dir/` folder."
         
         # Convert to RGB if needed
         progress(0.2, desc="Preparing image...")
