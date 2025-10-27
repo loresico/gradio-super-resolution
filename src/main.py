@@ -145,8 +145,16 @@ def load_model(scale: int = 4) -> tuple:
         
         print(f"📂 Loading model from: {model_path.resolve()}")
         
-        # Load model
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # Load model - support MPS (Apple Silicon), CUDA (NVIDIA), and CPU
+        if torch.backends.mps.is_available():
+            device = torch.device("mps")
+            print("🍎 Using Apple Silicon GPU (MPS)")
+        elif torch.cuda.is_available():
+            device = torch.device("cuda")
+            print("🚀 Using NVIDIA GPU (CUDA)")
+        else:
+            device = torch.device("cpu")
+            print("💻 Using CPU")
         
         # Load checkpoint first to detect input channels
         checkpoint = torch.load(model_path, map_location=device)
@@ -238,7 +246,7 @@ def upscale_image(image: Image.Image, scale_factor: int, progress=gr.Progress())
             """
             return upscaled, info
         
-        # Check if CPU and use fallback for speed
+        # Check if CPU and use fallback for speed (MPS and CUDA use AI model)
         if device.type == 'cpu':
             progress(0.5, desc="CPU detected - using fast Lanczos upscaling...")
             print("⚠️  CPU detected - using Lanczos fallback for better performance")
@@ -255,7 +263,7 @@ def upscale_image(image: Image.Image, scale_factor: int, progress=gr.Progress())
 **Device:** CPU (AI model too slow on CPU)
 **Processing Time:** {elapsed_time:.2f}s
 
-💡 *For AI-powered results, use a GPU. CPU uses high-quality Lanczos interpolation.*
+💡 *For AI-powered results, use a Mac with Apple Silicon or a GPU. CPU uses high-quality Lanczos interpolation.*
             """
             return upscaled, info
         
@@ -306,7 +314,12 @@ def upscale_image(image: Image.Image, scale_factor: int, progress=gr.Progress())
         
         # Create info text
         progress(1.0, desc="Complete!")
-        device_name = "GPU (CUDA)" if torch.cuda.is_available() else "CPU"
+        if device.type == "mps":
+            device_name = "Apple Silicon GPU (MPS)"
+        elif device.type == "cuda":
+            device_name = "NVIDIA GPU (CUDA)"
+        else:
+            device_name = "CPU"
         info = f"""
 ### ✅ Enhancement Complete!
 
@@ -395,7 +408,8 @@ def create_interface() -> gr.Blocks:
                 - First run downloads model (~17-67MB)
                 - Processing takes 5-30 seconds
                 - Works best on photos and artwork
-                - GPU accelerates processing
+                - GPU accelerates processing (MPS/CUDA)
+                - M1/M2/M3/M4 Macs use Apple Silicon GPU
                 """)
             
             with gr.Column(scale=1):
@@ -415,7 +429,7 @@ def create_interface() -> gr.Blocks:
         - **Large Images** (>2000px): Use 2× scale
         - **Old Photos**: Great for restoration
         - **Screenshots**: 2× scale recommended
-        - **GPU**: Significantly faster processing
+        - **GPU**: Significantly faster (Apple Silicon MPS, NVIDIA CUDA)
         """)
         
         # Connect button
@@ -445,7 +459,16 @@ def create_interface() -> gr.Blocks:
 def main() -> None:
     """Launch the application."""
     print("🚀 Starting Real-ESRGAN Super Resolution App...")
-    print(f"📊 Device: {'GPU (CUDA)' if torch.cuda.is_available() else 'CPU'}")
+    
+    # Detect device
+    if torch.backends.mps.is_available():
+        device_info = "Apple Silicon GPU (MPS) 🍎"
+    elif torch.cuda.is_available():
+        device_info = "NVIDIA GPU (CUDA) 🚀"
+    else:
+        device_info = "CPU 💻"
+    
+    print(f"📊 Device: {device_info}")
     
     demo = create_interface()
     demo.launch(
