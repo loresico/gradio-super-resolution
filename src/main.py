@@ -178,8 +178,16 @@ def load_model(scale: int = 4) -> tuple:
             in_channels = 3
             print("⚠️  Could not detect input channels, using 3")
         
+        # Detect number of RRDB blocks by counting body layers
+        num_blocks = 23  # Default
+        body_keys = [k for k in state_dict.keys() if k.startswith('body.')]
+        if body_keys:
+            max_block = max([int(k.split('.')[1]) for k in body_keys if k.split('.')[1].isdigit()])
+            num_blocks = max_block + 1
+            print(f"📊 Detected {num_blocks} RRDB blocks")
+        
         # Create model with detected architecture
-        model = RRDBNet(in_nc=in_channels, out_nc=3, nf=64, nb=23, gc=32, scale=scale)
+        model = RRDBNet(in_nc=in_channels, out_nc=3, nf=64, nb=num_blocks, gc=32, scale=scale)
         
         # Load state dict
         missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
@@ -301,7 +309,18 @@ def upscale_image(image: Image.Image, scale_factor: int, progress=gr.Progress())
         
         # Convert back to PIL
         progress(0.8, desc="Converting result...")
-        output = output.squeeze(0).cpu().clamp(0, 1)
+        output = output.squeeze(0).cpu()
+        
+        # Debug: Check output range
+        print(f"🔍 Output range: min={output.min().item():.3f}, max={output.max().item():.3f}")
+        
+        # Normalize if output is in unusual range
+        if output.max() > 1.5 or output.min() < -0.5:
+            print("⚠️  Unusual output range detected, normalizing...")
+            output = (output - output.min()) / (output.max() - output.min())
+        else:
+            output = output.clamp(0, 1)
+        
         output = transforms.ToPILImage()(output)
         
         # Get new dimensions
