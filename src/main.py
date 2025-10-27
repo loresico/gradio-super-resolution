@@ -212,13 +212,14 @@ def load_model(scale: int = 4) -> tuple:
         return None, None
 
 
-def upscale_image(image: Image.Image, scale_factor: int, progress=gr.Progress()) -> tuple:
+def upscale_image(image: Image.Image, scale_factor: int, natural_strength: float = 0.5, progress=gr.Progress()) -> tuple:
     """
     Upscale an image using Real-ESRGAN.
     
     Args:
         image: Input PIL Image
         scale_factor: Upscaling factor (2 or 4)
+        natural_strength: How much to reduce digitalization (0=AI raw, 1=very natural)
         progress: Gradio progress tracker
         
     Returns:
@@ -387,6 +388,31 @@ def upscale_image(image: Image.Image, scale_factor: int, progress=gr.Progress())
         
         output = transforms.ToPILImage()(output)
         
+        # Post-processing: Reduce over-sharpening and digitalization
+        if natural_strength > 0:
+            progress(0.85, desc="Applying natural enhancement...")
+            from PIL import ImageFilter, ImageEnhance
+            
+            # Apply blur based on strength (0 = no blur, 1 = max blur of 1.5)
+            if natural_strength > 0.1:
+                blur_radius = natural_strength * 1.5
+                output = output.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+                print(f"🌿 Applied blur: radius={blur_radius:.2f}")
+            
+            # Reduce contrast (1.0 = original, lower = less contrast)
+            contrast_factor = 1.0 - (natural_strength * 0.15)  # Max -15% contrast
+            enhancer = ImageEnhance.Contrast(output)
+            output = enhancer.enhance(contrast_factor)
+            print(f"🌿 Adjusted contrast: {contrast_factor:.2f}")
+            
+            # Reduce sharpness
+            sharpness_factor = 1.0 - (natural_strength * 0.25)  # Max -25% sharpness
+            enhancer = ImageEnhance.Sharpness(output)
+            output = enhancer.enhance(sharpness_factor)
+            print(f"🌿 Adjusted sharpness: {sharpness_factor:.2f}")
+            
+            print(f"✨ Applied natural enhancement (strength={natural_strength:.2f})")
+        
         # Get new dimensions
         progress(0.9, desc="Finalizing...")
         new_width, new_height = output.size
@@ -480,6 +506,15 @@ def create_interface() -> gr.Blocks:
                     info="Both use AI! 2× uses 4× model with smart downscaling",
                 )
                 
+                natural_strength = gr.Slider(
+                    minimum=0.0,
+                    maximum=1.0,
+                    step=0.1,
+                    value=0.5,
+                    label="Natural Look Strength",
+                    info="0=AI raw (sharp/digital), 1=very natural (soft)",
+                )
+                
                 submit_btn = gr.Button(
                     "✨ Enhance Image",
                     variant="primary",
@@ -501,6 +536,7 @@ def create_interface() -> gr.Blocks:
                 - Works best on photos and artwork
                 - GPU accelerates processing (MPS/CUDA)
                 - M1/M2/M3/M4 Macs use Apple Silicon GPU
+                - Adjust "Natural Look" if output looks too digital
                 """)
             
             with gr.Column(scale=1):
@@ -526,7 +562,7 @@ def create_interface() -> gr.Blocks:
         # Connect button
         submit_btn.click(
             fn=upscale_image,
-            inputs=[input_image, scale_factor],
+            inputs=[input_image, scale_factor, natural_strength],
             outputs=[output_image, info_text],
         )
         
