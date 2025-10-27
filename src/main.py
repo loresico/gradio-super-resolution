@@ -126,22 +126,19 @@ def load_model(scale: int = 4) -> tuple:
         return _model_cache[cache_key]
     
     try:
-        # Model paths
+        # Model paths (we only use 4x model)
         model_dir = Path("model_dir")
         model_path = model_dir / f"RealESRGAN_x{scale}plus.pth"
         
-        # Alternative download URLs
-        model_urls = {
-            2: "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth",
-            4: "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth"
-        }
+        # Download URL for 4x model
+        model_url = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth"
         
         # Download if needed
         if not model_path.exists():
-            if scale in model_urls:
-                download_model_from_url(model_urls[scale], model_path)
+            if scale == 4:
+                download_model_from_url(model_url, model_path)
             else:
-                raise ValueError(f"Scale {scale}x not supported. Use 2 or 4.")
+                raise ValueError(f"Scale {scale}x model not available. Only 4x model is used.")
         
         print(f"📂 Loading model from: {model_path.resolve()}")
         
@@ -253,25 +250,8 @@ def upscale_image(image: Image.Image, scale_factor: int, natural_strength: float
             progress(0.2, desc="Loading 4x model...")
             model, device = load_model(4)
             
-            if model is None or device.type == 'cpu':
-                # Fallback if model fails
-                print("⚠️  Model loading failed, using Lanczos fallback...")
-                progress(0.5, desc="Using Lanczos fallback...")
-                new_size = (original_size[0] * 2, original_size[1] * 2)
-                upscaled = image.resize(new_size, Image.LANCZOS)
-                elapsed_time = time.time() - start_time
-                info = f"""
-### ✅ Enhancement Complete (Fallback)
-
-**Original Size:** {original_size[0]} × {original_size[1]} px
-**Enhanced Size:** {upscaled.size[0]} × {upscaled.size[1]} px
-**Scale Factor:** 2×
-**Method:** Lanczos Resampling
-**Processing Time:** {elapsed_time:.2f}s
-
-💡 *Using Lanczos fallback (model unavailable or CPU detected).*
-                """
-                return upscaled, info
+            if model is None:
+                return None, "❌ **Error:** Failed to load 4x AI model for 2x upscaling. Check that model file exists in `model_dir/` folder."
             
             # Use the downscaled image for processing
             image = downscaled
@@ -283,41 +263,7 @@ def upscale_image(image: Image.Image, scale_factor: int, natural_strength: float
             model, device = load_model(scale_factor)
         
         if model is None:
-            # Fallback to Lanczos
-            progress(0.5, desc="Using fallback method...")
-            new_size = (orig_width * scale_factor, orig_height * scale_factor)
-            upscaled = image.resize(new_size, Image.LANCZOS)
-            info = f"""
-### ⚠️ Using Fallback Method
-
-**Original Size:** {orig_width} × {orig_height} px
-**Enhanced Size:** {upscaled.size[0]} × {upscaled.size[1]} px
-**Method:** Lanczos (Model loading failed)
-
-💡 **Fix:** Check that model file exists in `model_dir/` folder
-            """
-            return upscaled, info
-        
-        # Check if CPU and use fallback for speed (MPS and CUDA use AI model)
-        if device.type == 'cpu':
-            progress(0.5, desc="CPU detected - using fast Lanczos upscaling...")
-            print("⚠️  CPU detected - using Lanczos fallback for better performance")
-            new_size = (orig_width * scale_factor, orig_height * scale_factor)
-            upscaled = image.resize(new_size, Image.LANCZOS)
-            elapsed_time = time.time() - start_time
-            info = f"""
-### ✅ Enhancement Complete (Fast Mode)
-
-**Original Size:** {orig_width} × {orig_height} px
-**Enhanced Size:** {upscaled.size[0]} × {upscaled.size[1]} px
-**Scale Factor:** {scale_factor}×
-**Method:** Lanczos Resampling
-**Device:** CPU (AI model too slow on CPU)
-**Processing Time:** {elapsed_time:.2f}s
-
-💡 *For AI-powered results, use a Mac with Apple Silicon or a GPU. CPU uses high-quality Lanczos interpolation.*
-            """
-            return upscaled, info
+            return None, "❌ **Error:** Failed to load AI model. Check that model file exists in `model_dir/` folder."
         
         # Convert to RGB if needed
         progress(0.2, desc="Preparing image...")
@@ -373,13 +319,9 @@ def upscale_image(image: Image.Image, scale_factor: int, natural_strength: float
             ch_mean = output[c].mean().item()
             print(f"   Channel {c}: min={ch_min:.3f}, max={ch_max:.3f}, mean={ch_mean:.3f}")
         
-        # Normalize if output is in unusual range or if mean is too dark
+        # Normalize if output is in unusual range
         if output_max > 1.5 or output_min < -0.5:
             print("⚠️  Unusual output range detected, normalizing to [0, 1]...")
-            output = (output - output_min) / (output_max - output_min + 1e-8)
-        elif output_mean < 0.1 and scale_factor == 2:
-            # Special case: 2x model produces very dark output
-            print("⚠️  2x model output is too dark, applying normalization...")
             output = (output - output_min) / (output_max - output_min + 1e-8)
         else:
             output = output.clamp(0, 1)
@@ -524,19 +466,17 @@ def create_interface() -> gr.Blocks:
                 gr.Markdown("""
                 ---
                 **Model Files:**
-                Place model files in `model_dir/` folder:
-                - `RealESRGAN_x2plus.pth`
-                - `RealESRGAN_x4plus.pth`
-                
-                Models will auto-download if not found!
+                - `RealESRGAN_x4plus.pth` (auto-downloads if not found)
+                - Stored in `model_dir/` folder
                 
                 **Tips:**
-                - First run downloads model (~17-67MB)
+                - First run downloads model (~67MB)
                 - Processing takes 5-30 seconds
                 - Works best on photos and artwork
                 - GPU accelerates processing (MPS/CUDA)
                 - M1/M2/M3/M4 Macs use Apple Silicon GPU
                 - Adjust "Natural Look" if output looks too digital
+                - Both 2× and 4× use the same AI model
                 """)
             
             with gr.Column(scale=1):
