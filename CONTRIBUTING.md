@@ -25,7 +25,7 @@ Thank you for considering contributing to this project! This guide will help you
 
 ```bash
 # Fork on GitHub (click "Fork" button), then clone your fork
-# Replace YOUR_USERNAME with your actual GitHub username
+# Replace YOUR_USERNAME with your actual GitHub username (e.g., johndoe)
 git clone https://github.com/YOUR_USERNAME/gradio-super-resolution.git
 cd gradio-super-resolution
 
