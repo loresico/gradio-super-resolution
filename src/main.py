@@ -298,7 +298,6 @@ def upscale_image(image: Image.Image, scale_factor: int, natural_strength: float
         
         # Process image
         progress(0.35, desc=f"Enhancing {orig_width}×{orig_height} → {orig_width*scale_factor}×{orig_height*scale_factor}...")
-        print(f"🎨 Enhancing image ({orig_width}×{orig_height}) with {scale_factor}x model...")
         with torch.no_grad():
             output = model(img_tensor)
         
