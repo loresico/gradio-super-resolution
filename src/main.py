@@ -126,22 +126,19 @@ def load_model(scale: int = 4) -> tuple:
         return _model_cache[cache_key]
     
     try:
-        # Model paths
+        # Model paths (we only use 4x model)
         model_dir = Path("model_dir")
         model_path = model_dir / f"RealESRGAN_x{scale}plus.pth"
         
-        # Alternative download URLs
-        model_urls = {
-            2: "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth",
-            4: "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth"
-        }
+        # Download URL for 4x model
+        model_url = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth"
         
         # Download if needed
         if not model_path.exists():
-            if scale in model_urls:
-                download_model_from_url(model_urls[scale], model_path)
+            if scale == 4:
+                download_model_from_url(model_url, model_path)
             else:
-                raise ValueError(f"Scale {scale}x not supported. Use 2 or 4.")
+                raise ValueError(f"Scale {scale}x model not available. Only 4x model is used.")
         
         print(f"📂 Loading model from: {model_path.resolve()}")
         
@@ -373,13 +370,9 @@ def upscale_image(image: Image.Image, scale_factor: int, natural_strength: float
             ch_mean = output[c].mean().item()
             print(f"   Channel {c}: min={ch_min:.3f}, max={ch_max:.3f}, mean={ch_mean:.3f}")
         
-        # Normalize if output is in unusual range or if mean is too dark
+        # Normalize if output is in unusual range
         if output_max > 1.5 or output_min < -0.5:
             print("⚠️  Unusual output range detected, normalizing to [0, 1]...")
-            output = (output - output_min) / (output_max - output_min + 1e-8)
-        elif output_mean < 0.1 and scale_factor == 2:
-            # Special case: 2x model produces very dark output
-            print("⚠️  2x model output is too dark, applying normalization...")
             output = (output - output_min) / (output_max - output_min + 1e-8)
         else:
             output = output.clamp(0, 1)
@@ -524,19 +517,17 @@ def create_interface() -> gr.Blocks:
                 gr.Markdown("""
                 ---
                 **Model Files:**
-                Place model files in `model_dir/` folder:
-                - `RealESRGAN_x2plus.pth`
-                - `RealESRGAN_x4plus.pth`
-                
-                Models will auto-download if not found!
+                - `RealESRGAN_x4plus.pth` (auto-downloads if not found)
+                - Stored in `model_dir/` folder
                 
                 **Tips:**
-                - First run downloads model (~17-67MB)
+                - First run downloads model (~67MB)
                 - Processing takes 5-30 seconds
                 - Works best on photos and artwork
                 - GPU accelerates processing (MPS/CUDA)
                 - M1/M2/M3/M4 Macs use Apple Silicon GPU
                 - Adjust "Natural Look" if output looks too digital
+                - Both 2× and 4× use the same AI model
                 """)
             
             with gr.Column(scale=1):
