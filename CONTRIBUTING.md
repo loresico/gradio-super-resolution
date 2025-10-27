@@ -201,7 +201,7 @@ Go to GitHub and create a Pull Request with:
 
 **Title:** Follow commit message convention
 ```
-feat(setup): add Python 3.14 support
+feat(model): add support for custom model architectures
 ```
 
 **Description Template:**
@@ -283,6 +283,24 @@ gradio-super-resolution/
 └── README.md               # Documentation
 ```
 
+### Working with AI Models
+
+**Model Directory:**
+- AI models are stored in `model_dir/` (gitignored)
+- Models auto-download on first run (~67MB)
+- Development: Download once, shared across runs
+
+**Adding New Models:**
+1. Add download URL to `load_model()` function
+2. Update model architecture if needed (RRDBNet parameters)
+3. Test with small images first
+4. Update documentation
+
+**Model Caching:**
+- Models are cached in memory after first load
+- Clear cache: Restart Python process
+- Test different scales: Models are cached per scale
+
 ## 🧪 Testing
 
 ### Running Tests
@@ -305,6 +323,36 @@ uv run pytest -v
 
 # Run and show print statements
 uv run pytest -s
+
+# Skip slow tests (model loading)
+uv run pytest -m "not slow"
+```
+
+### Testing Best Practices
+
+**For AI Model Tests:**
+- Mock model loading to speed up tests
+- Use small test images (100x100px)
+- Test with CPU to avoid GPU dependencies in CI
+- Mark slow tests with `@pytest.mark.slow`
+
+**Example:**
+```python
+import pytest
+from unittest.mock import patch
+
+@pytest.mark.slow
+def test_real_model_loading():
+    """Test actual model loading (slow, runs on real GPU)."""
+    from src.main import load_model
+    model, device = load_model(4)
+    assert model is not None
+
+def test_upscale_with_mock():
+    """Test upscale logic with mocked model (fast)."""
+    with patch('src.main.load_model') as mock_load:
+        # Test logic without loading real model
+        pass
 ```
 
 ### Writing Tests
@@ -378,9 +426,10 @@ def upscale_image(
 set -e
 
 # Configuration
-PYTHON_VERSION="3.13.9"
+MODEL_URL="https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth"
 
-echo "Setting up Python ${PYTHON_VERSION}"
+echo "Downloading Real-ESRGAN model..."
+curl -L "${MODEL_URL}" -o model_dir/RealESRGAN_x4plus.pth
 ```
 
 ### Documentation
