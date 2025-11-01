@@ -6,7 +6,8 @@
 
 Professional AI-powered image super-resolution using Real-ESRGAN with an intuitive Gradio web interface. Enhance your images up to 4x resolution with state-of-the-art deep learning!
 
-![Demo](demo.gif)
+🔗 **[Try the Demo](https://huggingface.co/spaces/loresico/gradio-super-resolution)**
+
 
 ## ✨ Features
 
